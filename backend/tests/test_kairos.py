@@ -45,7 +45,8 @@ def test_generate_kairos_analysis(db, seed_data):
     assert analysis.title_ar.startswith("تحليل كاييروس")
     assert "إرهاب" not in analysis.body_ar  # banned terms never appear
     assert analysis.body_ar.count("كاييروس") > 0
-    assert "الانحياز إلى محور المقاومة" in analysis.body_ar  # declared stance disclosed
+    assert "الانحياز المُعلن إلى محور المقاومة" in analysis.body_ar  # declared stance disclosed
+    assert "يمتد من جنوب لبنان إلى اليمن" not in analysis.body_ar  # old clause is gone
     assert "أنصار الله" in analysis.body_ar  # Yemen resistance named explicitly
     assert "المقاومة العراقية" in analysis.body_ar  # Iraq resistance named explicitly
     assert "تطورات" in analysis.summary_ar
