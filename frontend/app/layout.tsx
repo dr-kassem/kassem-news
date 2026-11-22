@@ -33,7 +33,6 @@ export const metadata: Metadata = {
     description: "تغطية إخبارية عالمية مع تركيز خاص على لبنان والشرق الأوسط.",
   },
   twitter: { card: "summary_large_image" },
-  icons: { icon: "/icon.svg", apple: "/icon.svg" },
   robots: { index: true, follow: true },
 };
 

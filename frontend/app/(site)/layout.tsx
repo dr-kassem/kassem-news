@@ -1,3 +1,4 @@
+import AssistantWidget from "@/components/AssistantWidget";
 import AutoRefresh from "@/components/AutoRefresh";
 import BreakingTicker from "@/components/BreakingTicker";
 import SiteFooter from "@/components/SiteFooter";
@@ -15,6 +16,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
       <BreakingTicker items={breaking} />
       <main className="container-page py-6">{children}</main>
       <SiteFooter />
+      <AssistantWidget />
     </>
   );
 }
