@@ -1,0 +1,78 @@
+# Render Blueprint for the free onrender.com demo deployment.
+# Free Postgres is deleted after 30 days and free web services sleep when idle.
+
+databases:
+  - name: kassem-news-db
+    plan: free
+    databaseName: kassem_news
+    user: kassem
+    region: oregon
+
+services:
+  - type: web
+    name: kassem-news-api
+    runtime: docker
+    plan: free
+    region: oregon
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /api/health
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: DEBUG
+        value: "false"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: kassem-news-db
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: "720"
+      - key: CORS_ORIGINS
+        value: https://kassem-news.onrender.com
+      - key: SITE_URL
+        value: https://kassem-news.onrender.com
+      - key: INGESTION_ENABLED
+        value: "true"
+      - key: INGESTION_INTERVAL_MINUTES
+        value: "15"
+      - key: ADMIN_EMAIL
+        value: admin@kassem.news
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: UPLOADS_DIR
+        value: /srv/backend/uploads
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: AI_MODEL
+        value: google/gemma-4-31b-it:free
+      - key: AI_FALLBACK_MODELS
+        value: nvidia/nemotron-3-ultra-550b-a55b:free,xingchen-agi/xing4.0-29b-a4b:free
+      - key: AI_TIMEOUT_SECONDS
+        value: "90"
+      - key: AI_SUMMARIZE_ON_INGEST
+        value: "false"
+      - key: AI_INGEST_MAX_PER_RUN
+        value: "20"
+      - key: AI_SITE_URL
+        value: https://kassem-news.onrender.com
+
+  - type: web
+    name: kassem-news
+    runtime: docker
+    plan: free
+    region: oregon
+    dockerfilePath: ./frontend/Dockerfile
+    dockerContext: ./frontend
+    healthCheckPath: /
+    envVars:
+      - key: NEXT_PUBLIC_API_URL
+        value: https://kassem-news-api.onrender.com
+      - key: API_URL
+        value: https://kassem-news-api.onrender.com
+      - key: SITE_URL
+        value: https://kassem-news.onrender.com
+      - key: NEXT_TELEMETRY_DISABLED
+        value: "1"

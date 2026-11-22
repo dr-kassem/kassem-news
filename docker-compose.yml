@@ -1,0 +1,93 @@
+name: kassem-news
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: kassem
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: kassem_news
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kassem -d kassem_news"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    # Reserved for the optional Celery/worker deployment described in the README.
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    environment:
+      ENVIRONMENT: production
+      DEBUG: "false"
+      DATABASE_URL: postgresql+psycopg://kassem:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@db:5432/kassem_news
+      SECRET_KEY: ${SECRET_KEY:?set SECRET_KEY in .env}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-720}
+      CORS_ORIGINS: ${SITE_URL:?set SITE_URL in .env}
+      SITE_URL: ${SITE_URL:?set SITE_URL in .env}
+      INGESTION_ENABLED: "true"
+      INGESTION_INTERVAL_MINUTES: ${INGESTION_INTERVAL_MINUTES:-15}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@kassem.news}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?set ADMIN_PASSWORD in .env}
+      UPLOADS_DIR: /srv/backend/uploads
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      AI_MODEL: ${AI_MODEL:-google/gemma-4-31b-it:free}
+      AI_FALLBACK_MODELS: ${AI_FALLBACK_MODELS:-nvidia/nemotron-3-ultra-550b-a55b:free,xingchen-agi/xing4.0-29b-a4b:free}
+      AI_TIMEOUT_SECONDS: ${AI_TIMEOUT_SECONDS:-90}
+      AI_SUMMARIZE_ON_INGEST: ${AI_SUMMARIZE_ON_INGEST:-false}
+      AI_INGEST_MAX_PER_RUN: ${AI_INGEST_MAX_PER_RUN:-20}
+    volumes:
+      - uploads:/srv/backend/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_API_URL: ${SITE_URL:?set SITE_URL in .env}
+        API_URL: http://backend:8000
+        SITE_URL: ${SITE_URL:?set SITE_URL in .env}
+    restart: unless-stopped
+    environment:
+      NEXT_PUBLIC_API_URL: ${SITE_URL:?set SITE_URL in .env}
+      API_URL: http://backend:8000
+      SITE_URL: ${SITE_URL:?set SITE_URL in .env}
+    depends_on:
+      - backend
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      SITE_URL: ${SITE_URL:?set SITE_URL in .env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - frontend
+      - backend
+
+volumes:
+  pgdata:
+  uploads:
+  caddy_data:
+  caddy_config:
