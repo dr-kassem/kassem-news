@@ -10,7 +10,8 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.config import settings
-from app.database import SessionLocal
+from app.database import SessionLocal, engine
+from app.migrate import run_migrations
 from app.models import Category, Country, PublishingRule, Region, Role, Source, SourceType, User
 from app.publishing import ensure_default_rules
 from app.security import hash_password
@@ -167,6 +168,7 @@ def main() -> None:
     logging.basicConfig(level=logging.INFO)
     db = SessionLocal()
     try:
+        run_migrations(engine, db)
         seed(db)
         print("تمت تهيئة البيانات المرجعية بنجاح.")
     finally:
